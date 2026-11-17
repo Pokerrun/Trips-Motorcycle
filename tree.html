@@ -1,0 +1,318 @@
+<html><head>
+<!-- 
+
+Freebyte.com Javascript tree
+Version 1.1 August 02, 2006
+
+Copyright: 1999-2006 Freebyte.com
+
+License: The Javascript code 
+inside this document is 
+copyrighted by Freebyte.com 
+and can only be used as part of 
+a TreePad-generated Website.
+It is not allowed to use the 
+Javascript code inside this 
+document for any other purposes.
+
+-->
+
+<style>
+body {background-color:#F5EEEE}
+.clsnode {cursor:pointer;cursor:hand;text-decoration:none;font-family:arial;font-size:12;position:absolute;left:6;white-space:nowrap;z-index:1}
+.clsnodetext {position:relative;top:-3;color:#330099;font-size:12;font-family:Tahoma, Arial, Helvetica, sans-serif}
+.clsnodeseltext {position:relative;top:-3;color:#FF0000;font-size:12;font-family:Tahoma, Arial, Helvetica, sans-serif}
+.clsmsgloading {font-family:arial;color:grey;font-weight:bold;font-size:12;position:absolute;top:37;left:22;z-index:2;border-width:1;border-style:solid;
+border-color:grey;background-color:white;padding-left:10;padding-right:10;padding-top:2;padding-bottom:2}
+</style>
+
+<script language="javascript">
+  var vertical_node_distance = 18;
+  var lsttmp = new Array(2);
+  var lstelements = new Array(18);
+  var treeisloaded = 0;
+  var treeisbusy = 0;
+  var selectednode = null;
+  var selectednodetext = null;
+  var clnodeselected = "#FF0000";
+  var clnodetitle = "#330099";
+  var clnodehover = "#990000";
+  var lstnodes = new Array
+  ('F092D353641569385171FA6DDB380C45B4BE901D','60EE6E0D40B0C7B46C8F78BD46E745A61929A48C','D342BD1DD867C6B64FDE76029D3F7805612CEA0B','D212224C0441469CBAD9E1A1C2B196423F361913','441EE8B0A9CB915FA03282FF5647796D14213539','A8F9915DEA2B11603DE50F2E8149599F12200E52','37C531EC298648E7943FB88B91B41C5B312980AE','B166F9781FA661641A2EA12898240BE97B1C96EA','83B212708457D3881F9844EFEAEBACF1417D8460','65CCE19EED213DCEB6FE4412AD630687444B595B','5ED70FF87C1C006CD013D606BCB898FED565DE9F','6EA1B86BE8A2A10DED44312273893BF45BCEEB3F','21CF83F523022676B04E292798E794AAB58B5ED6','384B6E58721CDE8E223CB193811A0DA0BCA729A5','513258EA984CE350E1BDD6491F0F1A8EF286D2FB','97EF07CE893D3D99805399E5CCAF357EFD3AB799','0D463CBF33C04937D11FF70A5FE05EE1C69055BE','2796727642B0129815997FDB1338DC4CA6EE7341');
+
+  var lstlevels = new Array
+  (256,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,257);
+
+  var lstexpanded = new Array
+  (1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0);
+
+
+
+
+function LoadlstElements() {
+  var idx = 0;
+  while (idx < lstelements.length) {
+    lstelements[idx] = document.getElementById('e' + idx);
+    idx++;
+  }
+}
+
+function onafterload() {
+  LoadlstElements();
+  document.getElementById("msgloading").style.visibility = "hidden";
+  treeisloaded = 1;
+}
+
+function GetNodeLevel(idx) {
+  return lstlevels[idx] & 255;
+}
+
+function NodeIsCorner(idx) {
+  return lstlevels[idx] & 256;
+}
+
+function Collapse(idxstart) {
+  var LStart = GetNodeLevel(idxstart);
+  var cid = '';
+  var LCurrent = 0;
+  var node = lstelements[idxstart];
+  var CurrentTop = parseInt(node.style.top);
+  var TreeHasChanged = 0;
+  lstexpanded[idxstart]=0;
+  var idx = idxstart+1;
+  while ((idx < lstlevels.length) && (GetNodeLevel(idx) > LStart)) {
+    TreeHasChanged = 1;
+    LCurrent = GetNodeLevel(idx);
+    cid = 'e' + idx;
+    node = lstelements[idx];
+    node.style.visibility="hidden";
+    idx++;
+  }
+  if (TreeHasChanged == 1) {
+    while (idx < lstlevels.length) {
+      cid = 'e' + idx;
+      node = lstelements[idx];
+      if (node.style.visibility != "hidden") {
+        CurrentTop=CurrentTop+vertical_node_distance;
+        node.style.top=CurrentTop;
+      }
+      idx++;
+    }
+    var img = document.getElementById('i' + idxstart);
+    if (NodeIsCorner(idxstart)) {
+      img.src="tpicons/pluscorner.gif";
+    }
+    else {
+      img.src="tpicons/plusbranch.gif";
+    }
+  }
+}
+
+function Expand(idxstart) {
+  var Lstart = GetNodeLevel(idxstart);
+  var cid = '';
+  var LCurrent = 0;
+  var LevelCollapsed=-1;
+  var node = lstelements[idxstart];
+  var CurrentTop = parseInt(node.style.top);
+  var TreeHasChanged = 0;
+  var test=9;
+  lstexpanded[idxstart]=1;
+  var idx = idxstart+1;
+  while ((idx < lstlevels.length) && (GetNodeLevel(idx) > Lstart)) {
+    TreeHasChanged = 1;
+    LCurrent = GetNodeLevel(idx);
+    cid = 'e' + idx;
+    node = lstelements[idx];
+
+    if (LevelCollapsed == -1) {
+      if (lstexpanded[idx] == 0) { //node is collapsed
+        LevelCollapsed=LCurrent;
+      }
+    }
+    else if (LCurrent <= LevelCollapsed) {
+      if (lstexpanded[idx] == 1) {
+        LevelCollapsed=-1;
+      } 
+      else {
+        LevelCollapsed = LCurrent;
+      }
+    }
+    if (Lstart == LCurrent-1) {
+      CurrentTop=CurrentTop+vertical_node_distance;
+      node.style.top=CurrentTop;      
+      node.style.visibility="visible";
+    }
+    else if ((LevelCollapsed == -1) || (LevelCollapsed == LCurrent)) {
+      CurrentTop=CurrentTop+vertical_node_distance;
+      node.style.top=CurrentTop;
+      node.style.visibility="visible";
+    }
+    else {
+      node.style.visibility="hidden";
+    }      
+    idx++;
+  }
+  if (TreeHasChanged == 1) {
+    while (idx < lstlevels.length) {
+      cid = 'e' + idx;
+      node = lstelements[idx];
+      if (node.style.visibility != "hidden") {
+        CurrentTop=CurrentTop+vertical_node_distance;
+        node.style.top=CurrentTop;
+      }
+      idx++;
+    }
+    var img = document.getElementById('i' + idxstart);
+    if (NodeIsCorner(idxstart)) {
+      img.src="tpicons/mincorner.gif";
+    }
+    else {
+    img.src="tpicons/minbranch.gif";
+    }
+  }
+}
+
+function minclick(idx) {
+  if (treeisloaded == 0) return -1;
+  if (treeisbusy == 1) return -1;
+  treeisbusy = 1;
+  try {
+    if (lstexpanded[idx] == 1) {
+      Collapse(idx);
+    }
+    else {
+      Expand(idx);
+    }
+  }
+  finally {
+    treeisbusy = 0;
+  }
+}
+
+function getidxparent(idxnode) {
+  var idx = idxnode;
+  var levelstart = GetNodeLevel(idx);
+  do {
+    idx--;
+    if (GetNodeLevel(idx) < levelstart) {
+      return idx;
+    }
+  } while (idx > 0); 
+  return 0;
+}
+
+function getancestors(idxnode) {
+  var idx = 0;
+  while (idx < lsttmp.length) {
+    lsttmp[idx] = -1;
+    idx++;
+  }
+  var level = -1;
+  var idx = idxnode;
+  do {
+    idx = getidxparent(idx);
+    level = GetNodeLevel(idx);
+    lsttmp[level] = idx;
+  } while (idx > 0);
+
+}
+
+function expandancestors(idxnode) {
+  getancestors(idxnode);
+  var idxtmplist = 0;
+  while (idxtmplist < lsttmp.length) {
+    idxnode = lsttmp[idxtmplist];
+    if (idxnode > 0) {
+      if (lstexpanded[idxnode] == 0) {
+        Expand(idxnode);
+      }
+    }
+    idxtmplist++;
+  }
+}
+
+function iselectnode(idx) {
+  newselectednode = lstelements[idx];
+  if (selectednode != newselectednode) {
+    if (selectednodetext != null) {
+      selectednodetext.className = "clsnodetext";
+    }
+    selectednode = newselectednode;
+    if (selectednode.style.visibility == "hidden") {
+      expandancestors(idx);
+    }
+
+    selectednodetext = document.getElementById('t' + idx);
+    selectednodetext.className = "clsnodeseltext";
+
+    var ytop = parseInt(selectednode.style.top);
+    var ytopnew = 0;
+    var viewportheight = 0;
+
+    if (typeof(window.innerHeight) == 'number') {
+       viewportheight = window.innerHeight - 60;
+    }
+    else {
+       viewportheight = document.body.clientHeight - 60;
+    }
+
+    if (typeof(window.scrollY) == 'number') {
+        scrolly = window.scrollY;
+    }
+    else {
+        scrolly = document.body.scrollTop;
+    }
+
+    if (ytop > scrolly + viewportheight) {
+      ytopnew = ytop - viewportheight;
+      if (ytopnew < 0) {
+        ytopnew = 0;
+      }
+      window.scrollTo(0, ytopnew);
+    }
+    else if (ytop < scrolly + 20) {
+      ytopnew = ytop - 20;
+      if (ytopnew < 0) {
+        ytopnew = 0;
+      }
+      window.scrollTo(0, ytopnew);
+    }
+
+
+  }
+}
+
+
+function loadarticle(currentnode) {
+  if (treeisloaded == 0) return -1;
+  var idx = parseInt(currentnode.id.substring(1, 6));
+  iselectnode(idx);
+  parent.frarticle.location.href="documents/" + lstnodes[idx] + ".html";
+}
+
+</script>
+</head>
+<body onLoad="onafterload();">
+
+<table id="msgloading" class="clsmsgloading"><tr><td>Please wait, while<br>the tree is loading...</td></tr><tr><td>No Javascript? Click <a href="tree2.html">here</a></td></tr></table>
+<span id="e0" onclick="loadarticle(this)" class="clsnode" style="top:10;visibility:visible"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t0">Motorcycle Trips</span></span>
+<span id="e1" onclick="loadarticle(this)" class="clsnode" style="top:28;visibility:visible"><img  src="tpicons/branch.gif"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t1">Prudhoe Bay, Alaska Trip</span></span>
+<span id="e2" onclick="loadarticle(this)" class="clsnode" style="top:46;visibility:visible"><img  src="tpicons/branch.gif"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t2">Dreher Island State Park, SC Motorcycle Trip 9-21-20</span></span>
+<span id="e3" onclick="loadarticle(this)" class="clsnode" style="top:64;visibility:visible"><img  src="tpicons/branch.gif"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t3">Lake Alma Ohio 11-5-20</span></span>
+<span id="e4" onclick="loadarticle(this)" class="clsnode" style="top:82;visibility:visible"><img  src="tpicons/branch.gif"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t4">Gatlinburg Motorcycle Trips</span></span>
+<span id="e5" onclick="loadarticle(this)" class="clsnode" style="top:100;visibility:visible"><img  src="tpicons/branch.gif"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t5">Ozarks/Minneapolis/Sturgis  9-6-21</span></span>
+<span id="e6" onclick="loadarticle(this)" class="clsnode" style="top:118;visibility:visible"><img  src="tpicons/branch.gif"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t6">Maine 8-10-22</span></span>
+<span id="e7" onclick="loadarticle(this)" class="clsnode" style="top:136;visibility:visible"><img  src="tpicons/branch.gif"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t7">Hazard Ky 10-21-22 with Nephew Arik</span></span>
+<span id="e8" onclick="loadarticle(this)" class="clsnode" style="top:154;visibility:visible"><img  src="tpicons/branch.gif"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t8">Smokies 8-3-23 with Nephew Arik</span></span>
+<span id="e9" onclick="loadarticle(this)" class="clsnode" style="top:172;visibility:visible"><img  src="tpicons/branch.gif"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t9">Jennie Wiley St Park 6-27-24</span></span>
+<span id="e10" onclick="loadarticle(this)" class="clsnode" style="top:190;visibility:visible"><img  src="tpicons/branch.gif"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t10">Rt 66 Ozarks, Mo 7-29-24</span></span>
+<span id="e11" onclick="loadarticle(this)" class="clsnode" style="top:208;visibility:visible"><img  src="tpicons/branch.gif"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t11">Carr Creek State Park Ky 8-14-24</span></span>
+<span id="e12" onclick="loadarticle(this)" class="clsnode" style="top:226;visibility:visible"><img  src="tpicons/branch.gif"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t12">Tar Hollow State Park Oh 8-20-24</span></span>
+<span id="e13" onclick="loadarticle(this)" class="clsnode" style="top:244;visibility:visible"><img  src="tpicons/branch.gif"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t13">Kingdom Come/Chattanooga 4-23-25</span></span>
+<span id="e14" onclick="loadarticle(this)" class="clsnode" style="top:262;visibility:visible"><img  src="tpicons/branch.gif"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t14">New River Gorge, Smokies 8-11-25</span></span>
+<span id="e15" onclick="loadarticle(this)" class="clsnode" style="top:280;visibility:visible"><img  src="tpicons/branch.gif"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t15">North Bend/Twin Falls WV 10-13-25</span></span>
+<span id="e16" onclick="loadarticle(this)" class="clsnode" style="top:298;visibility:visible"><img  src="tpicons/branch.gif"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t16">Out West 6-10-26</span></span>
+<span id="e17" onclick="loadarticle(this)" class="clsnode" style="top:316;visibility:visible"><img  src="tpicons/corner.gif"><img src="tpicons/default.gif" border=0> <span class="clsnodetext"id="t17">Mohican State Park, Oh 9-27-26</span></span>
+
+</html></body>
